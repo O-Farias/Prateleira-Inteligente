@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PrateleiraInteligente.Infrastructure.Persistence;
+using PrateleiraInteligente.Infrastructure.Services;
+using PrateleiraInteligente.Domain.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     .EnableSensitiveDataLogging()
     .EnableDetailedErrors()
 );
+
+// Register Services
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
+builder.Services.AddScoped<IAlertaService, AlertaService>();
+builder.Services.AddScoped<IMovimentacaoService, MovimentacaoService>();
+
+// Add AutoMapper
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
 
