@@ -22,22 +22,7 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("CategoriaProduto", b =>
-                {
-                    b.Property<int>("CategoriasId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProdutosId")
-                        .HasColumnType("int");
-
-                    b.HasKey("CategoriasId", "ProdutosId");
-
-                    b.HasIndex("ProdutosId");
-
-                    b.ToTable("CategoriaProduto");
-                });
-
-            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Alimento", b =>
+            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Alerta", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -45,19 +30,30 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Consumido")
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Mensagem")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ProdutoId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Resolvido")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("Validade")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Alimentos");
+                    b.HasIndex("ProdutoId");
+
+                    b.ToTable("Alertas");
                 });
 
             modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Categoria", b =>
@@ -70,11 +66,13 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -94,7 +92,8 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
 
                     b.Property<string>("Observacao")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("ProdutoId")
                         .HasColumnType("int");
@@ -148,8 +147,8 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
 
                     b.Property<string>("CodigoBarras")
                         .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("nvarchar(13)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("DataValidade")
                         .HasColumnType("datetime2");
@@ -168,7 +167,8 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Preco")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
 
                     b.Property<int>("QuantidadeEstoque")
                         .HasColumnType("int");
@@ -180,7 +180,55 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                     b.ToTable("Produtos");
                 });
 
-            modelBuilder.Entity("CategoriaProduto", b =>
+            modelBuilder.Entity("ProdutoCategorias", b =>
+                {
+                    b.Property<int>("CategoriasId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProdutosId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CategoriasId", "ProdutosId");
+
+                    b.HasIndex("ProdutosId");
+
+                    b.ToTable("ProdutoCategorias");
+                });
+
+            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Alerta", b =>
+                {
+                    b.HasOne("PrateleiraInteligente.Domain.Entities.Produto", "Produto")
+                        .WithMany()
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Produto");
+                });
+
+            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Movimentacao", b =>
+                {
+                    b.HasOne("PrateleiraInteligente.Domain.Entities.Produto", "Produto")
+                        .WithMany()
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Produto");
+                });
+
+            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Produto", b =>
+                {
+                    b.HasOne("PrateleiraInteligente.Domain.Entities.Prateleira", "Prateleira")
+                        .WithMany("Produtos")
+                        .HasForeignKey("PrateleiraId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Prateleira");
+                });
+
+            modelBuilder.Entity("ProdutoCategorias", b =>
                 {
                     b.HasOne("PrateleiraInteligente.Domain.Entities.Categoria", null)
                         .WithMany()
@@ -193,28 +241,6 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                         .HasForeignKey("ProdutosId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Movimentacao", b =>
-                {
-                    b.HasOne("PrateleiraInteligente.Domain.Entities.Produto", "Produto")
-                        .WithMany()
-                        .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Produto");
-                });
-
-            modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Produto", b =>
-                {
-                    b.HasOne("PrateleiraInteligente.Domain.Entities.Prateleira", "Prateleira")
-                        .WithMany("Produtos")
-                        .HasForeignKey("PrateleiraId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Prateleira");
                 });
 
             modelBuilder.Entity("PrateleiraInteligente.Domain.Entities.Prateleira", b =>
