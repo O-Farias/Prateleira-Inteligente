@@ -1,21 +1,18 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PrateleiraInteligente.Domain.Entities;
+using PrateleiraInteligente.Domain.Interfaces;
 using PrateleiraInteligente.Infrastructure.Persistence;
 
-[ApiController]
-[Route("api/[controller]")]
-public class ProdutosController : ControllerBase
+public class ProdutoService : IProdutoService
 {
     private readonly AppDbContext _context;
 
-    public ProdutosController(AppDbContext context)
+    public ProdutoService(AppDbContext context)
     {
         _context = context;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Produto>>> GetProdutos()
+    public async Task<IEnumerable<Produto>> GetAllAsync()
     {
         return await _context.Produtos
             .Include(p => p.Prateleira)
@@ -23,80 +20,54 @@ public class ProdutosController : ControllerBase
             .ToListAsync();
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Produto>> GetProduto(int id)
+    public async Task<Produto> GetByIdAsync(int id)
     {
-        var produto = await _context.Produtos
+        return await _context.Produtos
             .Include(p => p.Prateleira)
             .Include(p => p.Categorias)
             .FirstOrDefaultAsync(p => p.Id == id);
+    }
 
-        if (produto == null)
-        {
-            return NotFound();
-        }
-
+    public async Task<Produto> CreateAsync(Produto produto)
+    {
+        _context.Produtos.Add(produto);
+        await _context.SaveChangesAsync();
         return produto;
     }
 
-    [HttpPost]
-    public async Task<ActionResult<Produto>> CreateProduto(Produto produto)
+    public async Task UpdateAsync(Produto produto)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        _context.Produtos.Add(produto);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetProduto), new { id = produto.Id }, produto);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProduto(int id, Produto produto)
-    {
-        if (id != produto.Id)
-        {
-            return BadRequest();
-        }
-
         _context.Entry(produto).State = EntityState.Modified;
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!ProdutoExists(id))
-            {
-                return NotFound();
-            }
-            throw;
-        }
-
-        return NoContent();
+        await _context.SaveChangesAsync();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduto(int id)
+    public async Task DeleteAsync(int id)
     {
         var produto = await _context.Produtos.FindAsync(id);
-
-        if (produto == null)
+        if (produto != null)
         {
-            return NotFound();
+            _context.Produtos.Remove(produto);
+            await _context.SaveChangesAsync();
         }
-
-        _context.Produtos.Remove(produto);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
     }
 
-    private bool ProdutoExists(int id)
+    public async Task<IEnumerable<Produto>> GetProdutosProximosVencimentoAsync(int diasAviso = 7)
     {
-        return _context.Produtos.Any(e => e.Id == id);
+        var dataLimite = DateTime.Now.AddDays(diasAviso);
+        return await _context.Produtos
+            .Where(p => p.DataValidade <= dataLimite)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Produto>> GetProdutosBaixoEstoqueAsync(int quantidadeMinima = 5)
+    {
+        return await _context.Produtos
+            .Where(p => p.QuantidadeEstoque <= quantidadeMinima)
+            .ToListAsync();
+    }
+
+    public async Task<bool> ExistsAsync(int id)
+    {
+        return await _context.Produtos.AnyAsync(e => e.Id == id);
     }
 }
