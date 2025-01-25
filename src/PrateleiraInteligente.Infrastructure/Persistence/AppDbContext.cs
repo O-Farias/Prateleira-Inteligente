@@ -39,11 +39,16 @@ namespace PrateleiraInteligente.Infrastructure.Persistence
                     .HasPrecision(10, 2);
             });
 
-            // Configuração Categoria-Produto (many-to-many)
-            modelBuilder.Entity<Produto>()
-                .HasMany(p => p.Categorias)
-                .WithMany(c => c.Produtos)
-                .UsingEntity("ProdutoCategorias");
+            // Configuração Prateleira
+            modelBuilder.Entity<Prateleira>(entity =>
+            {
+                entity.Property(p => p.Nome)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(p => p.Localizacao)
+                    .HasMaxLength(200);
+            });
 
             // Configuração Categoria
             modelBuilder.Entity<Categoria>(entity =>
@@ -56,6 +61,12 @@ namespace PrateleiraInteligente.Infrastructure.Persistence
                     .HasMaxLength(200);
             });
 
+            // Configuração Categoria-Produto (many-to-many)
+            modelBuilder.Entity<Produto>()
+                .HasMany(p => p.Categorias)
+                .WithMany(c => c.Produtos)
+                .UsingEntity("ProdutoCategorias");
+
             // Configuração Movimentação
             modelBuilder.Entity<Movimentacao>(entity =>
             {
@@ -66,26 +77,19 @@ namespace PrateleiraInteligente.Infrastructure.Persistence
 
                 entity.Property(m => m.Observacao)
                     .HasMaxLength(500);
-            });
 
-            // Configuração Prateleira
-            modelBuilder.Entity<Prateleira>(entity =>
-            {
-                entity.Property(p => p.Nome)
+                entity.Property(m => m.DataMovimentacao)
                     .IsRequired()
-                    .HasMaxLength(100);
-
-                entity.Property(p => p.Localizacao)
-                    .HasMaxLength(200);
+                    .HasDefaultValueSql("GETDATE()");
             });
 
             // Configuração Alerta
             modelBuilder.Entity<Alerta>(entity =>
             {
                 entity.HasOne(a => a.Produto)
-                .WithMany()
-                .HasForeignKey(a => a.ProdutoId)
-                .OnDelete(DeleteBehavior.Restrict);
+                    .WithMany()
+                    .HasForeignKey(a => a.ProdutoId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.Property(a => a.Mensagem)
                     .IsRequired()
