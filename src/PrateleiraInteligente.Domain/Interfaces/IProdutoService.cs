@@ -1,6 +1,7 @@
-using PrateleiraInteligente.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using PrateleiraInteligente.Domain.Entities;
 
 namespace PrateleiraInteligente.Domain.Interfaces
 {
@@ -11,8 +12,8 @@ namespace PrateleiraInteligente.Domain.Interfaces
         Task<Produto> CreateAsync(Produto produto);
         Task UpdateAsync(Produto produto);
         Task DeleteAsync(int id);
+        Task<bool> ExistsAsync(int id);
         Task<IEnumerable<Produto>> GetProdutosProximosVencimentoAsync(int diasAviso = 7);
         Task<IEnumerable<Produto>> GetProdutosBaixoEstoqueAsync(int quantidadeMinima = 5);
-        Task<bool> ExistsAsync(int id);
     }
 }
