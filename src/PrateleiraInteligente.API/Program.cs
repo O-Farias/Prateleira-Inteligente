@@ -22,29 +22,18 @@ builder.Services.AddSwaggerGen(c =>
 // Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null)
-    )
-    .EnableSensitiveDataLogging()
-    .EnableDetailedErrors()
-);
-
-// Register Services
-builder.Services.AddScoped<IProdutoService, ProdutoService>();
-builder.Services.AddScoped<IAlertaService, AlertaService>();
-builder.Services.AddScoped<IMovimentacaoService, MovimentacaoService>();
-builder.Services.AddScoped<ICategoriaService, CategoriaService>();
-builder.Services.AddScoped<IPrateleiraService, PrateleiraService>();
-
-// Add AutoMapper
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Health Checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
+
+// Add Services
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IPrateleiraService, PrateleiraService>();
+builder.Services.AddScoped<IMovimentacaoService, MovimentacaoService>();
+builder.Services.AddScoped<IAlertaService, AlertaService>();
 
 var app = builder.Build();
 
@@ -60,8 +49,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
-
-// Map endpoints
 app.MapControllers();
 app.MapHealthChecks("/health");
 
