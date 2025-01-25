@@ -6,6 +6,9 @@ namespace PrateleiraInteligente.Domain.Entities
     {
         public Produto()
         {
+            Nome = string.Empty;
+            Descricao = string.Empty;
+            CodigoBarras = string.Empty;
             Categorias = new List<Categoria>();
         }
 
@@ -18,24 +21,16 @@ namespace PrateleiraInteligente.Domain.Entities
         [StringLength(500)]
         public string Descricao { get; set; }
 
-        [Required(ErrorMessage = "O código de barras é obrigatório")]
-        [StringLength(13)]
+        [StringLength(50)]
         public string CodigoBarras { get; set; }
 
-        [Required(ErrorMessage = "A data de validade é obrigatória")]
-        public DateTime DataValidade { get; set; }
-
-        [Required]
-        [Range(0, double.MaxValue)]
         public decimal Preco { get; set; }
-
-        [Required]
-        [Range(0, int.MaxValue)]
         public int QuantidadeEstoque { get; set; }
+        public int QuantidadeMinima { get; set; }
+        public DateTime? DataValidade { get; set; }
 
-        public int PrateleiraId { get; set; }
-        public virtual Prateleira Prateleira { get; set; }
-
+        public int? PrateleiraId { get; set; }
+        public virtual Prateleira Prateleira { get; set; } = null!;
         public virtual ICollection<Categoria> Categorias { get; set; }
     }
 }
