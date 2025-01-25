@@ -25,11 +25,23 @@ namespace PrateleiraInteligente.Infrastructure.Services
                 .ToListAsync();
         }
 
-        public async Task<Alerta?> GetByIdAsync(int id)
+        public async Task<IEnumerable<Alerta>> GetAllAsync()
         {
             return await _context.Alertas
                 .Include(a => a.Produto)
+                .ToListAsync();
+        }
+
+        public async Task<Alerta> GetByIdAsync(int id)
+        {
+            var alerta = await _context.Alertas
+                .Include(a => a.Produto)
                 .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (alerta == null)
+                throw new KeyNotFoundException($"Alerta com ID {id} não encontrado.");
+
+            return alerta;
         }
 
         public async Task<Alerta> CreateAlertaAsync(Alerta alerta)
@@ -44,6 +56,16 @@ namespace PrateleiraInteligente.Infrastructure.Services
             return alerta;
         }
 
+        public async Task UpdateAsync(Alerta alerta)
+        {
+            var alertaExistente = await _context.Alertas.FindAsync(alerta.Id);
+            if (alertaExistente == null)
+                throw new KeyNotFoundException($"Alerta com ID {alerta.Id} não encontrado.");
+
+            _context.Entry(alertaExistente).CurrentValues.SetValues(alerta);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task ResolverAlertaAsync(int id)
         {
             var alerta = await _context.Alertas.FindAsync(id);
@@ -52,6 +74,7 @@ namespace PrateleiraInteligente.Infrastructure.Services
 
             alerta.Resolvido = true;
             alerta.DataResolucao = DateTime.Now;
+
             await _context.SaveChangesAsync();
         }
 
@@ -59,7 +82,7 @@ namespace PrateleiraInteligente.Infrastructure.Services
         {
             var dataLimite = DateTime.Now.AddDays(_diasParaVencimento);
             var produtosProximosVencimento = await _context.Produtos
-                .Where(p => p.DataValidade <= dataLimite && p.DataValidade > DateTime.Now)
+                .Where(p => p.DataValidade.HasValue && p.DataValidade <= dataLimite && p.DataValidade > DateTime.Now)
                 .ToListAsync();
 
             foreach (var produto in produtosProximosVencimento)
@@ -69,9 +92,9 @@ namespace PrateleiraInteligente.Infrastructure.Services
                                   a.Tipo == TipoAlerta.ProximoVencimento &&
                                   !a.Resolvido);
 
-                if (!alertaExistente)
+                if (!alertaExistente && produto.DataValidade.HasValue)
                 {
-                    var diasRestantes = (produto.DataValidade - DateTime.Now).Days;
+                    var diasRestantes = (produto.DataValidade.Value - DateTime.Now).Days;
                     await CreateAlertaAsync(new Alerta
                     {
                         ProdutoId = produto.Id,
@@ -101,7 +124,7 @@ namespace PrateleiraInteligente.Infrastructure.Services
                     {
                         ProdutoId = produto.Id,
                         Tipo = TipoAlerta.EstoqueBaixo,
-                        Mensagem = $"O produto {produto.Nome} está com estoque baixo ({produto.QuantidadeEstoque} unidades)"
+                        Mensagem = $"O produto {produto.Nome} está com estoque baixo. Quantidade atual: {produto.QuantidadeEstoque}"
                     });
                 }
             }
