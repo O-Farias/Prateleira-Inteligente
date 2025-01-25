@@ -83,9 +83,9 @@ namespace PrateleiraInteligente.Infrastructure.Persistence
             modelBuilder.Entity<Alerta>(entity =>
             {
                 entity.HasOne(a => a.Produto)
-                    .WithMany()
-                    .HasForeignKey(a => a.ProdutoId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                .WithMany()
+                .HasForeignKey(a => a.ProdutoId)
+                .OnDelete(DeleteBehavior.Restrict);
 
                 entity.Property(a => a.Mensagem)
                     .IsRequired()
@@ -94,6 +94,9 @@ namespace PrateleiraInteligente.Infrastructure.Persistence
                 entity.Property(a => a.DataCriacao)
                     .IsRequired()
                     .HasDefaultValueSql("GETDATE()");
+
+                entity.Property(a => a.DataResolucao)
+                    .IsRequired(false);
             });
         }
     }
