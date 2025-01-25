@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using PrateleiraInteligente.Infrastructure.Persistence;
 using PrateleiraInteligente.Infrastructure.Services;
 using PrateleiraInteligente.Domain.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
