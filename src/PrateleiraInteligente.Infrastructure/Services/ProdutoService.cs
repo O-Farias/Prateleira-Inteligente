@@ -24,10 +24,15 @@ namespace PrateleiraInteligente.Infrastructure.Services
 
         public async Task<Produto> GetByIdAsync(int id)
         {
-            return await _context.Produtos
+            var produto = await _context.Produtos
                 .Include(p => p.Prateleira)
                 .Include(p => p.Categorias)
                 .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (produto == null)
+                throw new KeyNotFoundException($"Produto com ID {id} não encontrado.");
+
+            return produto;
         }
 
         public async Task<Produto> CreateAsync(Produto produto)
@@ -53,18 +58,22 @@ namespace PrateleiraInteligente.Infrastructure.Services
             }
         }
 
+        public async Task<IEnumerable<Produto>> GetProdutosBaixoEstoqueAsync(int quantidadeMinima = 5)
+        {
+            return await _context.Produtos
+                .Include(p => p.Prateleira)
+                .Include(p => p.Categorias)
+                .Where(p => p.QuantidadeEstoque <= quantidadeMinima)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Produto>> GetProdutosProximosVencimentoAsync(int diasAviso = 7)
         {
             var dataLimite = DateTime.Now.AddDays(diasAviso);
             return await _context.Produtos
-                .Where(p => p.DataValidade <= dataLimite)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Produto>> GetProdutosBaixoEstoqueAsync(int quantidadeMinima = 5)
-        {
-            return await _context.Produtos
-                .Where(p => p.QuantidadeEstoque <= quantidadeMinima)
+                .Include(p => p.Prateleira)
+                .Include(p => p.Categorias)
+                .Where(p => p.DataValidade.HasValue && p.DataValidade <= dataLimite)
                 .ToListAsync();
         }
 
