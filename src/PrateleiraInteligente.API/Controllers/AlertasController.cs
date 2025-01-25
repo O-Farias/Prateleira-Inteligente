@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PrateleiraInteligente.Domain.Entities;
-using PrateleiraInteligente.Infrastructure.Persistence;
+using PrateleiraInteligente.Domain.Interfaces;
 
 namespace PrateleiraInteligente.API.Controllers
 {
@@ -9,87 +9,67 @@ namespace PrateleiraInteligente.API.Controllers
     [Route("api/[controller]")]
     public class AlertasController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IAlertaService _alertaService;
 
-        public AlertasController(AppDbContext context)
+        public AlertasController(IAlertaService alertaService)
         {
-            _context = context;
+            _alertaService = alertaService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Alerta>>> GetAlertas()
         {
-            return await _context.Alertas
-                .Include(a => a.Produto)
-                .ToListAsync();
+            var alertas = await _alertaService.GetAlertasNaoResolvidosAsync();
+            return Ok(alertas);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Alerta>> GetAlerta(int id)
         {
-            var alerta = await _context.Alertas
-                .Include(a => a.Produto)
-                .FirstOrDefaultAsync(a => a.Id == id);
+            var alerta = await _alertaService.GetByIdAsync(id);
 
             if (alerta == null)
-            {
                 return NotFound();
-            }
 
-            return alerta;
-        }
-
-        [HttpGet("nao-resolvidos")]
-        public async Task<ActionResult<IEnumerable<Alerta>>> GetAlertasNaoResolvidos()
-        {
-            return await _context.Alertas
-                .Include(a => a.Produto)
-                .Where(a => !a.Resolvido)
-                .ToListAsync();
+            return Ok(alerta);
         }
 
         [HttpPost]
         public async Task<ActionResult<Alerta>> CreateAlerta(Alerta alerta)
         {
-            alerta.DataCriacao = DateTime.Now;
-            alerta.Resolvido = false;
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            _context.Alertas.Add(alerta);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetAlerta), new { id = alerta.Id }, alerta);
+            var novoAlerta = await _alertaService.CreateAlertaAsync(alerta);
+            return CreatedAtAction(nameof(GetAlerta), new { id = novoAlerta.Id }, novoAlerta);
         }
 
         [HttpPut("{id}/resolver")]
         public async Task<IActionResult> ResolverAlerta(int id)
         {
-            var alerta = await _context.Alertas.FindAsync(id);
-
-            if (alerta == null)
+            try
+            {
+                await _alertaService.ResolverAlertaAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound();
             }
-
-            alerta.Resolvido = true;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAlerta(int id)
+        [HttpPost("verificar-vencimentos")]
+        public async Task<IActionResult> VerificarVencimentos()
         {
-            var alerta = await _context.Alertas.FindAsync(id);
+            await _alertaService.VerificarProdutosVencimentoAsync();
+            return Ok();
+        }
 
-            if (alerta == null)
-            {
-                return NotFound();
-            }
-
-            _context.Alertas.Remove(alerta);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+        [HttpPost("verificar-estoque")]
+        public async Task<IActionResult> VerificarEstoque()
+        {
+            await _alertaService.VerificarEstoqueBaixoAsync();
+            return Ok();
         }
     }
 }
