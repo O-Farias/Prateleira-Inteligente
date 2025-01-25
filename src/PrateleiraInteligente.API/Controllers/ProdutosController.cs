@@ -1,73 +1,105 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using PrateleiraInteligente.Domain.Entities;
 using PrateleiraInteligente.Domain.Interfaces;
-using PrateleiraInteligente.Infrastructure.Persistence;
 
-public class ProdutoService : IProdutoService
+namespace PrateleiraInteligente.API.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public ProdutoService(AppDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProdutosController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IProdutoService _produtoService;
 
-    public async Task<IEnumerable<Produto>> GetAllAsync()
-    {
-        return await _context.Produtos
-            .Include(p => p.Prateleira)
-            .Include(p => p.Categorias)
-            .ToListAsync();
-    }
-
-    public async Task<Produto> GetByIdAsync(int id)
-    {
-        return await _context.Produtos
-            .Include(p => p.Prateleira)
-            .Include(p => p.Categorias)
-            .FirstOrDefaultAsync(p => p.Id == id);
-    }
-
-    public async Task<Produto> CreateAsync(Produto produto)
-    {
-        _context.Produtos.Add(produto);
-        await _context.SaveChangesAsync();
-        return produto;
-    }
-
-    public async Task UpdateAsync(Produto produto)
-    {
-        _context.Entry(produto).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        var produto = await _context.Produtos.FindAsync(id);
-        if (produto != null)
+        public ProdutosController(IProdutoService produtoService)
         {
-            _context.Produtos.Remove(produto);
-            await _context.SaveChangesAsync();
+            _produtoService = produtoService;
         }
-    }
 
-    public async Task<IEnumerable<Produto>> GetProdutosProximosVencimentoAsync(int diasAviso = 7)
-    {
-        var dataLimite = DateTime.Now.AddDays(diasAviso);
-        return await _context.Produtos
-            .Where(p => p.DataValidade <= dataLimite)
-            .ToListAsync();
-    }
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Produto>>> GetProdutos()
+        {
+            var produtos = await _produtoService.GetAllAsync();
+            return Ok(produtos);
+        }
 
-    public async Task<IEnumerable<Produto>> GetProdutosBaixoEstoqueAsync(int quantidadeMinima = 5)
-    {
-        return await _context.Produtos
-            .Where(p => p.QuantidadeEstoque <= quantidadeMinima)
-            .ToListAsync();
-    }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Produto>> GetProduto(int id)
+        {
+            try
+            {
+                var produto = await _produtoService.GetByIdAsync(id);
+                return Ok(produto);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+        }
 
-    public async Task<bool> ExistsAsync(int id)
-    {
-        return await _context.Produtos.AnyAsync(e => e.Id == id);
+        [HttpPost]
+        public async Task<ActionResult<Produto>> CreateProduto(Produto produto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var novoProduto = await _produtoService.CreateAsync(produto);
+                return CreatedAtAction(nameof(GetProduto), new { id = novoProduto.Id }, novoProduto);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduto(int id, Produto produto)
+        {
+            if (id != produto.Id)
+                return BadRequest();
+
+            try
+            {
+                await _produtoService.UpdateAsync(produto);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduto(int id)
+        {
+            try
+            {
+                await _produtoService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpGet("vencimento-proximo/{diasAviso}")]
+        public async Task<ActionResult<IEnumerable<Produto>>> GetProdutosProximosVencimento(int diasAviso)
+        {
+            var produtos = await _produtoService.GetProdutosProximosVencimentoAsync(diasAviso);
+            return Ok(produtos);
+        }
+
+        [HttpGet("estoque-baixo/{quantidadeMinima}")]
+        public async Task<ActionResult<IEnumerable<Produto>>> GetProdutosBaixoEstoque(int quantidadeMinima)
+        {
+            var produtos = await _produtoService.GetProdutosBaixoEstoqueAsync(quantidadeMinima);
+            return Ok(produtos);
+        }
     }
 }
