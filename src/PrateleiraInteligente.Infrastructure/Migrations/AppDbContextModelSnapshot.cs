@@ -17,7 +17,7 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.1")
+                .HasAnnotation("ProductVersion", "8.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -34,6 +34,9 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime?>("DataResolucao")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Mensagem")
                         .IsRequired()
@@ -88,7 +91,9 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("DataMovimentacao")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.Property<string>("Observacao")
                         .IsRequired()
@@ -150,7 +155,7 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime>("DataValidade")
+                    b.Property<DateTime?>("DataValidade")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Descricao")
@@ -163,7 +168,7 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("PrateleiraId")
+                    b.Property<int?>("PrateleiraId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Preco")
@@ -171,6 +176,9 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<int>("QuantidadeEstoque")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantidadeMinima")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -222,8 +230,7 @@ namespace PrateleiraInteligente.Infrastructure.Migrations
                     b.HasOne("PrateleiraInteligente.Domain.Entities.Prateleira", "Prateleira")
                         .WithMany("Produtos")
                         .HasForeignKey("PrateleiraId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Prateleira");
                 });
