@@ -36,6 +36,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<IAlertaService, AlertaService>();
 builder.Services.AddScoped<IMovimentacaoService, MovimentacaoService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IPrateleiraService, PrateleiraService>();
 
 // Add AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
@@ -50,7 +52,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Prateleira Inteligente API V1");
+    });
 }
 
 app.UseHttpsRedirection();
