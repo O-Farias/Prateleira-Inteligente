@@ -8,6 +8,7 @@ namespace PrateleiraInteligente.Domain.Entities
         public TipoAlerta Tipo { get; set; }
         public string Mensagem { get; set; }
         public DateTime DataCriacao { get; set; }
+        public DateTime? DataResolucao { get; set; }
         public bool Resolvido { get; set; }
     }
 
