@@ -1,98 +1,91 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using PrateleiraInteligente.Domain.Entities;
-using PrateleiraInteligente.Infrastructure.Persistence;
+using PrateleiraInteligente.Domain.Interfaces;
 
-[ApiController]
-[Route("api/[controller]")]
-public class PrateleirasController : ControllerBase
+namespace PrateleiraInteligente.API.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public PrateleirasController(AppDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PrateleirasController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IPrateleiraService _prateleiraService;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Prateleira>>> GetPrateleiras()
-    {
-        return await _context.Prateleiras.Include(p => p.Produtos).ToListAsync();
-    }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Prateleira>> GetPrateleira(int id)
-    {
-        var prateleira = await _context.Prateleiras
-            .Include(p => p.Produtos)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (prateleira == null)
+        public PrateleirasController(IPrateleiraService prateleiraService)
         {
-            return NotFound();
+            _prateleiraService = prateleiraService;
         }
 
-        return Ok(prateleira);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<Prateleira>> CreatePrateleira(Prateleira prateleira)
-    {
-        if (!ModelState.IsValid)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Prateleira>>> GetPrateleiras()
         {
-            return BadRequest(ModelState);
+            var prateleiras = await _prateleiraService.GetAllAsync();
+            return Ok(prateleiras);
         }
 
-        _context.Prateleiras.Add(prateleira);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetPrateleira), new { id = prateleira.Id }, prateleira);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdatePrateleira(int id, Prateleira prateleira)
-    {
-        if (id != prateleira.Id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Prateleira>> GetPrateleira(int id)
         {
-            return BadRequest();
+            var prateleira = await _prateleiraService.GetByIdAsync(id);
+
+            if (prateleira == null)
+                return NotFound();
+
+            return Ok(prateleira);
         }
 
-        _context.Entry(prateleira).State = EntityState.Modified;
+        [HttpPost]
+        public async Task<ActionResult<Prateleira>> CreatePrateleira(Prateleira prateleira)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        try
-        {
-            await _context.SaveChangesAsync();
+            var novaPrateleira = await _prateleiraService.CreateAsync(prateleira);
+            return CreatedAtAction(nameof(GetPrateleira), new { id = novaPrateleira.Id }, novaPrateleira);
         }
-        catch (DbUpdateConcurrencyException)
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePrateleira(int id, Prateleira prateleira)
         {
-            if (!PrateleiraExists(id))
+            if (id != prateleira.Id)
+                return BadRequest();
+
+            try
+            {
+                await _prateleiraService.UpdateAsync(prateleira);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound();
             }
-            throw;
         }
 
-        return NoContent();
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeletePrateleira(int id)
-    {
-        var prateleira = await _context.Prateleiras.FindAsync(id);
-
-        if (prateleira == null)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePrateleira(int id)
         {
-            return NotFound();
+            try
+            {
+                await _prateleiraService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
         }
 
-        _context.Prateleiras.Remove(prateleira);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    private bool PrateleiraExists(int id)
-    {
-        return _context.Prateleiras.Any(e => e.Id == id);
+        [HttpGet("{id}/espaco-disponivel")]
+        public async Task<ActionResult<bool>> VerificarEspacoDisponivel(int id)
+        {
+            try
+            {
+                var temEspaco = await _prateleiraService.TemEspacoDisponivel(id);
+                return Ok(temEspaco);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+        }
     }
 }
