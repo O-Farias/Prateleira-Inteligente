@@ -48,6 +48,9 @@ namespace PrateleiraInteligente.Infrastructure.Persistence
 
                 entity.Property(p => p.Localizacao)
                     .HasMaxLength(200);
+
+                entity.Property(p => p.CapacidadeMaxima)
+                    .IsRequired();
             });
 
             // Configuração Categoria
