@@ -1,98 +1,57 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using PrateleiraInteligente.Domain.Entities;
-using PrateleiraInteligente.Infrastructure.Persistence;
+using PrateleiraInteligente.Domain.Interfaces;
 
-[ApiController]
-[Route("api/[controller]")]
-public class MovimentacoesController : ControllerBase
+namespace PrateleiraInteligente.API.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public MovimentacoesController(AppDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class MovimentacoesController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IMovimentacaoService _movimentacaoService;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Movimentacao>>> GetMovimentacoes()
-    {
-        return await _context.Movimentacoes.Include(m => m.Produto).ToListAsync();
-    }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Movimentacao>> GetMovimentacao(int id)
-    {
-        var movimentacao = await _context.Movimentacoes
-            .Include(m => m.Produto)
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (movimentacao == null)
+        public MovimentacoesController(IMovimentacaoService movimentacaoService)
         {
-            return NotFound();
+            _movimentacaoService = movimentacaoService;
         }
 
-        return movimentacao;
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<Movimentacao>> CreateMovimentacao(Movimentacao movimentacao)
-    {
-        if (!ModelState.IsValid)
+        [HttpGet("produto/{produtoId}")]
+        public async Task<ActionResult<IEnumerable<Movimentacao>>> GetMovimentacoesPorProduto(int produtoId)
         {
-            return BadRequest(ModelState);
+            var movimentacoes = await _movimentacaoService.GetMovimentacoesPorProdutoAsync(produtoId);
+            return Ok(movimentacoes);
         }
 
-        _context.Movimentacoes.Add(movimentacao);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetMovimentacao), new { id = movimentacao.Id }, movimentacao);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateMovimentacao(int id, Movimentacao movimentacao)
-    {
-        if (id != movimentacao.Id)
+        [HttpPost("entrada")]
+        public async Task<ActionResult<Movimentacao>> RegistrarEntrada(int produtoId, int quantidade, string observacao)
         {
-            return BadRequest();
-        }
-
-        _context.Entry(movimentacao).State = EntityState.Modified;
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!MovimentacaoExists(id))
+            try
             {
-                return NotFound();
+                var movimentacao = await _movimentacaoService.RegistrarEntradaAsync(produtoId, quantidade, observacao);
+                return CreatedAtAction(nameof(GetMovimentacoesPorProduto), new { produtoId }, movimentacao);
             }
-            throw;
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
-        return NoContent();
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteMovimentacao(int id)
-    {
-        var movimentacao = await _context.Movimentacoes.FindAsync(id);
-
-        if (movimentacao == null)
+        [HttpPost("saida")]
+        public async Task<ActionResult<Movimentacao>> RegistrarSaida(int produtoId, int quantidade, string observacao)
         {
-            return NotFound();
+            try
+            {
+                var movimentacao = await _movimentacaoService.RegistrarSaidaAsync(produtoId, quantidade, observacao);
+                return CreatedAtAction(nameof(GetMovimentacoesPorProduto), new { produtoId }, movimentacao);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-
-        _context.Movimentacoes.Remove(movimentacao);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    private bool MovimentacaoExists(int id)
-    {
-        return _context.Movimentacoes.Any(e => e.Id == id);
     }
 }
