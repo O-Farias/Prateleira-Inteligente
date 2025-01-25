@@ -1,94 +1,80 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using PrateleiraInteligente.Domain.Entities;
-using PrateleiraInteligente.Infrastructure.Persistence;
+using PrateleiraInteligente.Domain.Interfaces;
 
-[ApiController]
-[Route("api/[controller]")]
-public class CategoriasController : ControllerBase
+namespace PrateleiraInteligente.API.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public CategoriasController(AppDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CategoriasController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly ICategoriaService _categoriaService;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Categoria>>> GetCategorias()
-    {
-        return await _context.Categorias.ToListAsync();
-    }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Categoria>> GetCategoria(int id)
-    {
-        var categoria = await _context.Categorias.FindAsync(id);
-
-        if (categoria == null)
+        public CategoriasController(ICategoriaService categoriaService)
         {
-            return NotFound();
+            _categoriaService = categoriaService;
         }
 
-        return categoria;
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<Categoria>> CreateCategoria(Categoria categoria)
-    {
-        if (!ModelState.IsValid)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Categoria>>> GetCategorias()
         {
-            return BadRequest(ModelState);
+            var categorias = await _categoriaService.GetAllAsync();
+            return Ok(categorias);
         }
 
-        _context.Categorias.Add(categoria);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetCategoria), new { id = categoria.Id }, categoria);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateCategoria(int id, Categoria categoria)
-    {
-        if (id != categoria.Id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Categoria>> GetCategoria(int id)
         {
-            return BadRequest();
+            var categoria = await _categoriaService.GetByIdAsync(id);
+
+            if (categoria == null)
+                return NotFound();
+
+            return Ok(categoria);
         }
 
-        _context.Entry(categoria).State = EntityState.Modified;
+        [HttpPost]
+        public async Task<ActionResult<Categoria>> CreateCategoria(Categoria categoria)
+        {
+            if (categoria == null)
+                return BadRequest();
 
-        try
-        {
-            await _context.SaveChangesAsync();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var novaCategoria = await _categoriaService.CreateAsync(categoria);
+            return CreatedAtAction(nameof(GetCategoria), new { id = novaCategoria.Id }, novaCategoria);
         }
-        catch (DbUpdateConcurrencyException)
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCategoria(int id, Categoria categoria)
         {
-            if (!CategoriaExists(id))
+            if (id != categoria.Id)
+                return BadRequest();
+
+            try
+            {
+                await _categoriaService.UpdateAsync(categoria);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound();
             }
-            throw;
         }
 
-        return NoContent();
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCategoria(int id)
-    {
-        var categoria = await _context.Categorias.FindAsync(id);
-        if (categoria == null)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCategoria(int id)
         {
-            return NotFound();
+            try
+            {
+                await _categoriaService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
         }
-
-        _context.Categorias.Remove(categoria);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    private bool CategoriaExists(int id)
-    {
-        return _context.Categorias.Any(e => e.Id == id);
     }
 }
