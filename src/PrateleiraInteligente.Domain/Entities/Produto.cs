@@ -27,6 +27,7 @@ namespace PrateleiraInteligente.Domain.Entities
         public decimal Preco { get; set; }
         public int QuantidadeEstoque { get; set; }
         public int QuantidadeMinima { get; set; }
+        public int QuantidadeAtual { get; set; }
         public DateTime? DataValidade { get; set; }
 
         public int? PrateleiraId { get; set; }
